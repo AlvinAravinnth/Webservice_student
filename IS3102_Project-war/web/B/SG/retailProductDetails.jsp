@@ -22,6 +22,11 @@
             RetailProduct retailProduct = new RetailProduct();
             List<StoreEntity> storesInCountry = (List<StoreEntity>) session.getAttribute("storesInCountry");
             /*insert code here*/
+            for (RetailProduct rp : retailProducts) {
+                if (rp.getSKU().equals(sku)) {
+                    retailProduct = rp;               
+                }
+            }
         %>
         <div class="body">
             <jsp:include page="menu2.jsp" />
@@ -42,22 +47,22 @@
                             <div class="col-md-6">
                                 <div>
                                     <div class="thumbnail">
-                                        <img alt="" class="img-responsive img-rounded" src="../../..<%/*insert imageURL*/%>">
+                                        <img alt="" class="img-responsive img-rounded" src="../../..<%=retailProduct.getImageUrl()%>">
                                     </div>
                                 </div>
                             </div>
 
                             <div class="col-md-6">
                                 <div class="summary entry-summary">
-                                    <h2 class="shorter"><strong>Insert product name here</strong></h2>
+                                    <h2 class="shorter"><strong><%=retailProduct.getName()%></strong></h2>
 
-                                    <p class="price"><h4 class="amount"><%/*insert code here*/%></h4></p>
+                                    <p class="price"><h4 class="amount">$<%=retailProduct.getPrice()%></h4></p>
                                     <strong>Description</strong>
                                     <p class="taller">
-                                        <%/*insert code here*/%>
+                                        <%=retailProduct.getDescription()%>
                                     </p>
                                     <div class="product_meta">
-                                        <span class="posted_in">Category: <a rel="tag" href="#"><%/*insert code here*/%></a></span>
+                                        <span class="posted_in">Category: <a rel="tag" href="#"><%=retailProduct.getCategory()%></a></span>
                                     </div>
                                     <br/><br/>
 
@@ -71,7 +76,7 @@
                                                         Long storeID = 1L;
                                                         if (storeIDstring != null) {
                                                             storeID = Long.parseLong(storeIDstring);
-                                                        }
+                                                        }   
                                                         for (int i = 0; i < storesInCountry.size(); i++) {
                                                             if (!storesInCountry.get(i).getId().equals(storeID)) {%>
                                                     <option value="<%=storesInCountry.get(i).getId()%>"><%=storesInCountry.get(i).getName()%></option>

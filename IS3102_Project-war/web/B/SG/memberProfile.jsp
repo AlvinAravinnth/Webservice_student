@@ -6,7 +6,7 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@page import="java.util.List;"%>
 <jsp:include page="checkCountry.jsp" />
-<html> 
+<html>
     <jsp:include page="header.html" />
     <body>
         <script>
@@ -78,20 +78,32 @@
                                         <h4>Personal Information</h4>
                                         <div class="form-group">
                                             <label>Name</label>
-                                            <input class="form-control" required="true" name="name" type="text" value="">
+                                            <input class="form-control" required="true" name="name" type="text" value="<%
+                                                    if(member.getName() == null){
+                                                        out.print("");
+                                                    }else{
+                                                        out.print(member.getName());
+                                                    }
+                                                %>">
                                         </div>
                                         <div class="form-group">
                                             <label>E-mail Address</label>
-                                            <input class="form-control" required="true" value="" disabled/>
+                                            <input class="form-control" required="true" name="email" value="<%=member.getEmail()%>" disabled/>
                                         </div>
                                         <div class="form-group">
                                             <label>Phone</label>
-                                            <input class="form-control" required="true" type="text" name="phone" value="">
+                                            <input class="form-control" required="true" pattern="[0-9]*" title="Numbers only" type="text" name="phone" value="<%
+                                                    if(member.getPhone() == null){
+                                                        out.print("");
+                                                    }else{
+                                                        out.print(member.getPhone());
+                                                    }
+                                                %>">
                                         </div>
                                         <div class="form-group">
                                             <label>Country</label>
                                             <%if (member.getCity() != null && member.getCity() != "") {%>
-                                            <select name="country" disabled>
+                                            <select name="country">
                                                 <option value="<%=member.getCity()%>"><%=member.getCity()%></option>
                                                 <%} else {%>
                                                 <select name="country">
@@ -348,7 +360,13 @@
                                         </div>
                                         <div class="form-group">
                                             <label>Address</label>
-                                            <input class="form-control" type="text" required="true" name="address" value="">
+                                            <input class="form-control" type="text" required="true" name="address" value="<%
+                                                    if(member.getAddress() == null){
+                                                        out.print("");
+                                                    }else{
+                                                        out.print(member.getAddress());
+                                                    }
+                                                %>">
                                         </div>
                                         <div class="form-group">
                                             <label>Set Challenge Question</label>
@@ -369,7 +387,8 @@
                                                         out.println("selected");
                                                     }%>>What is your favourite animal?</option>
                                             </select>
-                                            <input class="form-control" type="text" required="true" name="securityAnswer" value="<%if (member.getSecurityAnswer() == null) {
+                                            <input class="form-control" type="text" required="true" name="securityAnswer" value="
+                                            <%if (member.getSecurityAnswer() == null) {
                                                     out.println("");
                                                 } else {
                                                     out.println(member.getSecurityAnswer());
@@ -377,14 +396,31 @@
                                         </div>
                                         <div class="form-group">
                                             <label>Age</label>
-                                            <input class="form-control" name="age" step="1" type="number" min="1" max="150" value="">
+                                            <input class="form-control" name="age" type="text" required="true" pattern="[0-9]{2}" title="Numbers only" value="<%
+                                                    if(member.getAge() == 0){
+                                                        out.print("");
+                                                    }else{
+                                                        out.print(member.getAge());
+                                                    }
+                                                %>">
                                         </div>
                                         <div class="form-group">
                                             <label>Income per annum (in USD)</label>
-                                            <input class="form-control" name="income" step="1" type="number" min="0" max="2147483646" value="">
+                                            <input class="form-control" name="income" type="text" required="true" pattern="[0-9]*" title="Money without cents" value="<%
+                                                    if(member.getIncome() == 0){
+                                                        out.print("");
+                                                    }else{
+                                                        out.print(member.getIncome());
+                                                    }
+                                                %>">
                                         </div>
                                         <div class="form-group">
-                                            <input type="checkbox" name="serviceLevelAgreement"> Allow us to use your particulars to serve you better?<br/>Checking the box above indicates that you agree to our <a onclick="pdpaWindow()">personal data protection policy.</a>
+                                            <input style="cursor: pointer" type="checkbox" name="serviceLevelAgreement" value="agreement" <%if (member.getServiceLevelAgreement()) {
+                                                        out.print("checked");
+                                                    }%>>
+                                            
+                                            Allow us to use your particulars to serve you better?
+                                            <br/>Checking the box above indicates that you agree to our <a onclick="pdpaWindow()" style="cursor: pointer">personal data protection policy.</a>
                                         </div>
                                         <hr class="more-spaced "/>
                                         <h4>Change Password</h4>
@@ -406,14 +442,17 @@
                                             </div>
                                         </div>
                                     </form>
-                                    <%}%>
+                                    <%}
+                                        else {
+                                            response.sendRedirect("/IS3102_Project-war/B/SG/memberLogin.jsp?errMsg=Session expired. Please re-login");
+                                        }
+                                    %>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
                 <%
-                        session.removeAttribute("member");
                     } catch (Exception ex) {
                         ex.printStackTrace();
                         response.sendRedirect("index.jsp");
