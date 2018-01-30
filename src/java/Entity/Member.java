@@ -17,6 +17,7 @@ public class Member {
     private String securityAnswer;
     private Integer age;
     private Integer income;
+    private boolean serviceLevelAgreement;
 
     public Long getId() {
         return id;
@@ -122,6 +123,14 @@ public class Member {
 
     public void setCumulativeSpending(Double cumulativeSpending) {
         this.cumulativeSpending = cumulativeSpending;
+    }
+
+    public boolean getServiceLevelAgreement() {
+        return serviceLevelAgreement;
+    }
+
+    public void setServiceLevelAgreement(boolean serviceLevelAgreement) {
+        this.serviceLevelAgreement = serviceLevelAgreement;
     }
     
     

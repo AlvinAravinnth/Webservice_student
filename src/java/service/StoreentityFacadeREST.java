@@ -78,8 +78,6 @@ public class StoreentityFacadeREST extends AbstractFacade<Storeentity> {
         return list;
     }
 
-    //get the item quantity based on the storeID
-    //this function is used by ECommerce_StockAvailability servlet
     @GET
     @Path("getQuantity")
     @Produces({"application/json"})
@@ -97,6 +95,28 @@ public class StoreentityFacadeREST extends AbstractFacade<Storeentity> {
             }
 
             return Response.ok(qty + "", MediaType.APPLICATION_JSON).build();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+    }
+    
+    @GET
+    @Path("getStoreAddress")
+    @Produces({"application/json"})
+    public Response getStoreAddress(@QueryParam("storeName") String storeName) {
+        try {
+            Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/islandfurniture-it07?zeroDateTimeBehavior=convertToNull&user=root&password=12345");
+            String stmt = "SELECT * FROM storeentity WHERE NAME = ?";
+            PreparedStatement ps = conn.prepareStatement(stmt);
+            ps.setString(1, storeName);
+            ResultSet rs = ps.executeQuery();
+            String storeAddress = "";
+            if (rs.next()) {
+                storeAddress = rs.getString("ADDRESS");
+            }
+
+            return Response.ok(storeAddress, MediaType.APPLICATION_JSON).build();
         } catch (Exception ex) {
             ex.printStackTrace();
             return Response.status(Response.Status.NOT_FOUND).build();

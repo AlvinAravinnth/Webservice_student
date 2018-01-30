@@ -5,7 +5,6 @@ import Entity.Lineitementity;
 import Entity.Member;
 import Entity.Memberentity;
 import Entity.Qrphonesyncentity;
-import java.net.URI;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -13,10 +12,8 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 import java.util.Scanner;
 import javax.ejb.Stateless;
@@ -25,17 +22,16 @@ import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
+import javax.ws.rs.core.GenericEntity;
 
 @Stateless
 @Path("entity.memberentity")
@@ -53,13 +49,6 @@ public class MemberentityFacadeREST extends AbstractFacade<Memberentity> {
     @Consumes({"application/xml", "application/json"})
     public void create(Memberentity entity) {
         super.create(entity);
-    }
-
-    @PUT
-    @Path("{id}")
-    @Consumes({"application/xml", "application/json"})
-    public void edit(@PathParam("id") Long id, Memberentity entity) {
-        super.edit(entity);
     }
 
     @DELETE
@@ -86,6 +75,67 @@ public class MemberentityFacadeREST extends AbstractFacade<Memberentity> {
         return list;
     }
 
+    @POST
+    @Path("updateMember")
+    @Consumes("application/x-www-form-urlencoded")
+    public Response updateMember(@FormParam("name") String name, @FormParam("email") String email, @FormParam("phone") String phone,
+            @FormParam("country") String country, @FormParam("address") String address, @FormParam("SecurityQn") int SecurityQn,
+            @FormParam("SecurityAns") String SecurityAns, @FormParam("age") int age, @FormParam("income") int income,
+            @FormParam("serviceLevelAgreement") int svcLvlAgreement, @FormParam("passwordSalt") String passwordSalt,@FormParam("passwordHash") String passwordHash) {
+            
+            try{
+                String stmt = "";
+                PreparedStatement ps;
+                Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/islandfurniture-it07?zeroDateTimeBehavior=convertToNull&user=root&password=12345");
+                
+                if(passwordHash.isEmpty() && passwordSalt.isEmpty()){
+                    stmt = "UPDATE memberentity SET NAME=?, PHONE=?, CITY=?, ADDRESS=?, SECURITYQUESTION=?,"
+                            +"SECURITYANSWER=?, AGE=?, INCOME=?, SERVICELEVELAGREEMENT=? WHERE EMAIL=?";
+                    ps = conn.prepareStatement(stmt);
+                    ps.setString(1, name);
+                    ps.setString(2, phone);
+                    ps.setString(3, country);
+                    ps.setString(4, address);
+                    ps.setInt(5, SecurityQn);
+                    ps.setString(6, SecurityAns);
+                    ps.setInt(7, age);
+                    ps.setDouble(8, income);
+                    ps.setInt(9, svcLvlAgreement);
+                    ps.setString(10, email);
+                }
+                else{
+                    stmt = "UPDATE memberentity SET NAME=?, PHONE=?, CITY=?, ADDRESS=?, SECURITYQUESTION=?, SECURITYANSWER=?, AGE=?,"
+                            + "INCOME=?, SERVICELEVELAGREEMENT=?, PASSWORDSALT=?, PASSWORDHASH=? WHERE EMAIL=?";
+                    ps = conn.prepareStatement(stmt);
+                    ps.setString(1, name);
+                    ps.setString(2, phone);
+                    ps.setString(3, country);
+                    ps.setString(4, address);
+                    ps.setInt(5, SecurityQn);
+                    ps.setString(6, SecurityAns);
+                    ps.setInt(7, age);
+                    ps.setDouble(8, income);
+                    ps.setInt(9, svcLvlAgreement);
+                    ps.setString(10, passwordSalt);
+                    ps.setString(11, passwordHash);
+                    ps.setString(12, email);
+                }
+                
+                ps.executeUpdate();
+                return Response
+                    .status(200)
+                    .header("Access-Control-Allow-Origin", "*")
+                    .header("Access-Control-Allow-Headers", "origin, content-type, accept, authorization")
+                    .header("Access-Control-Allow-Credentials", "true")
+                    .header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, HEAD")
+                    .header("Access-Control-Max-Age", "1209600")
+                    .build();
+            }catch(Exception ex){
+                ex.printStackTrace();
+                return Response.status(Response.Status.SERVICE_UNAVAILABLE).build();
+            }
+    }
+    
     //this function is used by ECommerce_MemberLoginServlet
     @GET
     @Path("login")
@@ -107,6 +157,55 @@ public class MemberentityFacadeREST extends AbstractFacade<Memberentity> {
                 return Response.status(Response.Status.UNAUTHORIZED).build();
             }
         } catch (Exception ex) {
+            ex.printStackTrace();
+            return Response.status(Response.Status.UNAUTHORIZED).build();
+        }
+    }
+    
+    @GET
+    @Path("getMember")
+    @Produces("application/json")
+    public Response getMember(@QueryParam("email") String email) {
+        try {
+            Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/islandfurniture-it07?zeroDateTimeBehavior=convertToNull&user=root&password=12345");
+            String stmt = "SELECT * FROM memberentity m WHERE m.EMAIL=?";
+            PreparedStatement ps = conn.prepareStatement(stmt);
+            ps.setString(1, email);
+            ResultSet rs = ps.executeQuery();
+            rs.next();
+            Member member = new Member();
+            member.setName(rs.getString("NAME"));
+            member.setEmail(rs.getString("EMAIL"));
+            member.setCity(rs.getString("CITY"));
+            member.setAddress(rs.getString("ADDRESS"));
+            member.setAge(rs.getInt("AGE"));
+            member.setCumulativeSpending(rs.getDouble("CUMULATIVESPENDING"));
+            member.setId(rs.getLong("ID"));
+            member.setIncome(rs.getInt("INCOME"));
+            member.setLoyaltyPoints(rs.getInt("LOYALTYPOINTS"));
+            member.setPhone(rs.getString("PHONE"));
+            member.setSecurityAnswer(rs.getString("SECURITYANSWER"));
+            member.setSecurityQuestion(rs.getInt("SECURITYQUESTION"));
+            int sla = rs.getInt("SERVICELEVELAGREEMENT");
+            if(sla == 0){
+                member.setServiceLevelAgreement(false);
+            }else if(sla == 1){
+                member.setServiceLevelAgreement(true);
+            }
+            
+             GenericEntity<Member> entity = new GenericEntity<Member>(member) {
+            };
+             return Response
+                    .status(200)
+                    .header("Access-Control-Allow-Origin", "*")
+                    .header("Access-Control-Allow-Headers", "origin, content-type, accept, authorization")
+                    .header("Access-Control-Allow-Credentials", "true")
+                    .header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, HEAD")
+                    .header("Access-Control-Max-Age", "1209600")
+                    .entity(entity)
+                    .build();
+        } catch (Exception ex) {
+            System.out.println(ex);
             ex.printStackTrace();
             return Response.status(Response.Status.UNAUTHORIZED).build();
         }
