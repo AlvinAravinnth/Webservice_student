@@ -5,6 +5,7 @@ import Entity.Lineitementity;
 import Entity.Member;
 import Entity.Memberentity;
 import Entity.Qrphonesyncentity;
+import Entity.ShoppingCartLineItem;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -12,8 +13,12 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Statement;
+import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.Scanner;
 import javax.ejb.Stateless;
@@ -136,6 +141,7 @@ public class MemberentityFacadeREST extends AbstractFacade<Memberentity> {
             }
     }
     
+    
     //this function is used by ECommerce_MemberLoginServlet
     @GET
     @Path("login")
@@ -205,12 +211,66 @@ public class MemberentityFacadeREST extends AbstractFacade<Memberentity> {
                     .entity(entity)
                     .build();
         } catch (Exception ex) {
-            System.out.println(ex);
             ex.printStackTrace();
             return Response.status(Response.Status.UNAUTHORIZED).build();
         }
     }
-
+    
+    @GET
+    @Path("getOrderItem")
+    @Produces("application/json")
+    public Response getOrderItem(@QueryParam("memberId") long memberId) {
+        ArrayList<ShoppingCartLineItem> itemList = new ArrayList<ShoppingCartLineItem>();
+        try {
+            Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/islandfurniture-it07?zeroDateTimeBehavior=convertToNull&user=root&password=12345");
+            String stmt = "SELECT i.SKU,i.NAME,ic.RETAILPRICE,li.QUANTITY,sr.CREATEDDATE,f.IMAGEURL,s.NAME AS 'STORENAME',s.ADDRESS,sr.ID "
+                    + "FROM itementity i,item_countryentity ic,lineitementity li,salesrecordentity sr,"
+                    + "salesrecordentity_lineitementity sl,furnitureentity f,storeentity s "
+                    + "WHERE sr.MEMBER_ID=? AND "
+                    + "i.ID=ic.ITEM_ID AND "
+                    + "ic.COUNTRY_ID=25 AND "
+                    + "li.ITEM_ID=i.ID AND "
+                    + "sr.ID=sl.SalesRecordEntity_ID AND "
+                    + "li.ID=sl.itemsPurchased_ID AND "
+                    + "f.ID=i.ID AND "
+                    + "s.ID = sr.STORE_ID";
+            PreparedStatement ps = conn.prepareStatement(stmt);
+            ps.setLong(1, memberId);
+            
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                ShoppingCartLineItem item = new ShoppingCartLineItem();
+                item.setSKU(rs.getString("SKU"));
+                item.setName(rs.getString("NAME"));
+                item.setPrice(rs.getDouble("RETAILPRICE"));
+                item.setQuantity(rs.getInt("QUANTITY"));
+                item.setImageURL(rs.getString("IMAGEURL"));
+                item.setDatePurchased(rs.getDate("CREATEDDATE"));
+                item.setTimePurchased(rs.getTime("CREATEDDATE"));
+                item.setStoreName(rs.getString("STORENAME"));
+                item.setStoreAddress(rs.getString("ADDRESS"));
+                item.setOrderId(rs.getInt("ID"));
+                itemList.add(item);
+            }
+            
+            GenericEntity<ArrayList<ShoppingCartLineItem>> entity = new GenericEntity<ArrayList<ShoppingCartLineItem>>(itemList) {
+            };
+            
+             return Response
+                    .status(200)
+                    .header("Access-Control-Allow-Origin", "*")
+                    .header("Access-Control-Allow-Headers", "origin, content-type, accept, authorization")
+                    .header("Access-Control-Allow-Credentials", "true")
+                    .header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, HEAD")
+                    .header("Access-Control-Max-Age", "1209600")
+                    .entity(entity)
+                    .build();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            return Response.status(Response.Status.UNAUTHORIZED).build();
+        }
+    }
+    
     public String generatePasswordSalt() {
         byte[] salt = new byte[16];
         try {
