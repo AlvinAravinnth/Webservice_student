@@ -1,24 +1,14 @@
 package service;
 
+import DBmodelLayer.itementityDB;
+import DBmodelLayer.memberentityDB;
 import Entity.Itementity;
 import Entity.Lineitementity;
 import Entity.Member;
 import Entity.Memberentity;
 import Entity.Qrphonesyncentity;
 import Entity.ShoppingCartLineItem;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.Statement;
-import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 import java.util.Scanner;
 import javax.ejb.Stateless;
@@ -44,6 +34,7 @@ public class MemberentityFacadeREST extends AbstractFacade<Memberentity> {
 
     @PersistenceContext(unitName = "WebService")
     private EntityManager em;
+    private memberentityDB memberDb = new memberentityDB();
 
     public MemberentityFacadeREST() {
         super(Memberentity.class);
@@ -89,44 +80,8 @@ public class MemberentityFacadeREST extends AbstractFacade<Memberentity> {
             @FormParam("serviceLevelAgreement") int svcLvlAgreement, @FormParam("passwordSalt") String passwordSalt,@FormParam("passwordHash") String passwordHash) {
             
             try{
-                String stmt = "";
-                PreparedStatement ps;
-                Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/islandfurniture-it07?zeroDateTimeBehavior=convertToNull&user=root&password=12345");
-                
-                if(passwordHash.isEmpty() && passwordSalt.isEmpty()){
-                    stmt = "UPDATE memberentity SET NAME=?, PHONE=?, CITY=?, ADDRESS=?, SECURITYQUESTION=?,"
-                            +"SECURITYANSWER=?, AGE=?, INCOME=?, SERVICELEVELAGREEMENT=? WHERE EMAIL=?";
-                    ps = conn.prepareStatement(stmt);
-                    ps.setString(1, name);
-                    ps.setString(2, phone);
-                    ps.setString(3, country);
-                    ps.setString(4, address);
-                    ps.setInt(5, SecurityQn);
-                    ps.setString(6, SecurityAns);
-                    ps.setInt(7, age);
-                    ps.setDouble(8, income);
-                    ps.setInt(9, svcLvlAgreement);
-                    ps.setString(10, email);
-                }
-                else{
-                    stmt = "UPDATE memberentity SET NAME=?, PHONE=?, CITY=?, ADDRESS=?, SECURITYQUESTION=?, SECURITYANSWER=?, AGE=?,"
-                            + "INCOME=?, SERVICELEVELAGREEMENT=?, PASSWORDSALT=?, PASSWORDHASH=? WHERE EMAIL=?";
-                    ps = conn.prepareStatement(stmt);
-                    ps.setString(1, name);
-                    ps.setString(2, phone);
-                    ps.setString(3, country);
-                    ps.setString(4, address);
-                    ps.setInt(5, SecurityQn);
-                    ps.setString(6, SecurityAns);
-                    ps.setInt(7, age);
-                    ps.setDouble(8, income);
-                    ps.setInt(9, svcLvlAgreement);
-                    ps.setString(10, passwordSalt);
-                    ps.setString(11, passwordHash);
-                    ps.setString(12, email);
-                }
-                
-                ps.executeUpdate();
+                memberDb.updateMemberDetails(name, email, phone, country, address, SecurityQn, SecurityAns,
+                        age, income, svcLvlAgreement, passwordSalt, passwordHash);
                 return Response
                     .status(200)
                     .header("Access-Control-Allow-Origin", "*")
@@ -141,25 +96,16 @@ public class MemberentityFacadeREST extends AbstractFacade<Memberentity> {
             }
     }
     
-    
     //this function is used by ECommerce_MemberLoginServlet
     @GET
     @Path("login")
     @Produces("application/json")
     public Response loginMember(@QueryParam("email") String email, @QueryParam("password") String password) {
         try {
-            Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/islandfurniture-it07?zeroDateTimeBehavior=convertToNull&user=root&password=12345");
-            String stmt = "SELECT * FROM memberentity m WHERE m.EMAIL=?";
-            PreparedStatement ps = conn.prepareStatement(stmt);
-            ps.setString(1, email);
-            ResultSet rs = ps.executeQuery();
-            rs.next();
-            String passwordSalt = rs.getString("PASSWORDSALT");
-            String passwordHash = generatePasswordHash(passwordSalt, password);
-            if (passwordHash.equals(rs.getString("PASSWORDHASH"))) {
+            boolean canLogin = memberDb.loginMember(email, password);
+            if (canLogin) {
                 return Response.ok(email, MediaType.APPLICATION_JSON).build();
             } else {
-                System.out.println("Login credentials provided were incorrect, password wrong.");
                 return Response.status(Response.Status.UNAUTHORIZED).build();
             }
         } catch (Exception ex) {
@@ -173,33 +119,8 @@ public class MemberentityFacadeREST extends AbstractFacade<Memberentity> {
     @Produces("application/json")
     public Response getMember(@QueryParam("email") String email) {
         try {
-            Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/islandfurniture-it07?zeroDateTimeBehavior=convertToNull&user=root&password=12345");
-            String stmt = "SELECT * FROM memberentity m WHERE m.EMAIL=?";
-            PreparedStatement ps = conn.prepareStatement(stmt);
-            ps.setString(1, email);
-            ResultSet rs = ps.executeQuery();
-            rs.next();
-            Member member = new Member();
-            member.setName(rs.getString("NAME"));
-            member.setEmail(rs.getString("EMAIL"));
-            member.setCity(rs.getString("CITY"));
-            member.setAddress(rs.getString("ADDRESS"));
-            member.setAge(rs.getInt("AGE"));
-            member.setCumulativeSpending(rs.getDouble("CUMULATIVESPENDING"));
-            member.setId(rs.getLong("ID"));
-            member.setIncome(rs.getInt("INCOME"));
-            member.setLoyaltyPoints(rs.getInt("LOYALTYPOINTS"));
-            member.setPhone(rs.getString("PHONE"));
-            member.setSecurityAnswer(rs.getString("SECURITYANSWER"));
-            member.setSecurityQuestion(rs.getInt("SECURITYQUESTION"));
-            int sla = rs.getInt("SERVICELEVELAGREEMENT");
-            if(sla == 0){
-                member.setServiceLevelAgreement(false);
-            }else if(sla == 1){
-                member.setServiceLevelAgreement(true);
-            }
-            
-             GenericEntity<Member> entity = new GenericEntity<Member>(member) {
+            Member mem = memberDb.getMember(email);
+            GenericEntity<Member> entity = new GenericEntity<Member>(mem) {
             };
              return Response
                     .status(200)
@@ -215,47 +136,17 @@ public class MemberentityFacadeREST extends AbstractFacade<Memberentity> {
             return Response.status(Response.Status.UNAUTHORIZED).build();
         }
     }
-    
+  
     @GET
-    @Path("getOrderItem")
+    @Path("getOrderedItems")
     @Produces("application/json")
-    public Response getOrderItem(@QueryParam("memberId") long memberId) {
+    public Response getOrderedItems(@QueryParam("memberId") long memberId) {
         ArrayList<ShoppingCartLineItem> itemList = new ArrayList<ShoppingCartLineItem>();
         try {
-            Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/islandfurniture-it07?zeroDateTimeBehavior=convertToNull&user=root&password=12345");
-            String stmt = "SELECT i.SKU,i.NAME,ic.RETAILPRICE,li.QUANTITY,sr.CREATEDDATE,f.IMAGEURL,s.NAME AS 'STORENAME',s.ADDRESS,sr.ID "
-                    + "FROM itementity i,item_countryentity ic,lineitementity li,salesrecordentity sr,"
-                    + "salesrecordentity_lineitementity sl,furnitureentity f,storeentity s "
-                    + "WHERE sr.MEMBER_ID=? AND "
-                    + "i.ID=ic.ITEM_ID AND "
-                    + "ic.COUNTRY_ID=25 AND "
-                    + "li.ITEM_ID=i.ID AND "
-                    + "sr.ID=sl.SalesRecordEntity_ID AND "
-                    + "li.ID=sl.itemsPurchased_ID AND "
-                    + "f.ID=i.ID AND "
-                    + "s.ID = sr.STORE_ID";
-            PreparedStatement ps = conn.prepareStatement(stmt);
-            ps.setLong(1, memberId);
-            
-            ResultSet rs = ps.executeQuery();
-            while (rs.next()) {
-                ShoppingCartLineItem item = new ShoppingCartLineItem();
-                item.setSKU(rs.getString("SKU"));
-                item.setName(rs.getString("NAME"));
-                item.setPrice(rs.getDouble("RETAILPRICE"));
-                item.setQuantity(rs.getInt("QUANTITY"));
-                item.setImageURL(rs.getString("IMAGEURL"));
-                item.setDatePurchased(rs.getDate("CREATEDDATE"));
-                item.setTimePurchased(rs.getTime("CREATEDDATE"));
-                item.setStoreName(rs.getString("STORENAME"));
-                item.setStoreAddress(rs.getString("ADDRESS"));
-                item.setOrderId(rs.getInt("ID"));
-                itemList.add(item);
-            }
-            
+            itementityDB itemDb = new itementityDB();
+            itemList = itemDb.getOrderedItems(memberId);
             GenericEntity<ArrayList<ShoppingCartLineItem>> entity = new GenericEntity<ArrayList<ShoppingCartLineItem>>(itemList) {
             };
-            
              return Response
                     .status(200)
                     .header("Access-Control-Allow-Origin", "*")
@@ -269,35 +160,6 @@ public class MemberentityFacadeREST extends AbstractFacade<Memberentity> {
             ex.printStackTrace();
             return Response.status(Response.Status.UNAUTHORIZED).build();
         }
-    }
-    
-    public String generatePasswordSalt() {
-        byte[] salt = new byte[16];
-        try {
-            SecureRandom sr = SecureRandom.getInstance("SHA1PRNG");
-            sr.nextBytes(salt);
-        } catch (NoSuchAlgorithmException ex) {
-            System.out.println("\nServer failed to generate password salt.\n" + ex);
-        }
-        return Arrays.toString(salt);
-    }
-
-    public String generatePasswordHash(String salt, String password) {
-        String passwordHash = null;
-        try {
-            password = salt + password;
-            MessageDigest md = MessageDigest.getInstance("MD5");
-            md.update(password.getBytes());
-            byte[] bytes = md.digest();
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < bytes.length; i++) {
-                sb.append(Integer.toString((bytes[i] & 0xff) + 0x100, 16).substring(1));
-            }
-            passwordHash = sb.toString();
-        } catch (NoSuchAlgorithmException ex) {
-            System.out.println("\nServer failed to hash password.\n" + ex);
-        }
-        return passwordHash;
     }
 
     @GET

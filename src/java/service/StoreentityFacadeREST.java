@@ -1,10 +1,7 @@
 package service;
 
+import DBmodelLayer.storeentityDB;
 import Entity.Storeentity;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
 import javax.ejb.Stateless;
@@ -29,6 +26,7 @@ public class StoreentityFacadeREST extends AbstractFacade<Storeentity> {
 
     @PersistenceContext(unitName = "WebService")
     private EntityManager em;
+    private storeentityDB storeDb = new storeentityDB();
 
     public StoreentityFacadeREST() {
         super(Storeentity.class);
@@ -78,22 +76,14 @@ public class StoreentityFacadeREST extends AbstractFacade<Storeentity> {
         return list;
     }
 
+    //get the item quantity based on the storeID
+    //this function is used by ECommerce_StockAvailability servlet
     @GET
     @Path("getQuantity")
     @Produces({"application/json"})
     public Response getItemQuantityOfStore(@QueryParam("storeID") Long storeID, @QueryParam("SKU") String SKU) {
         try {
-            Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/islandfurniture-it07?zeroDateTimeBehavior=convertToNull&user=root&password=12345");
-            String stmt = "SELECT sum(l.QUANTITY) as sum FROM storeentity s, warehouseentity w, storagebinentity sb, storagebinentity_lineitementity sbli, lineitementity l, itementity i where s.WAREHOUSE_ID=w.ID and w.ID=sb.WAREHOUSE_ID and sb.ID=sbli.StorageBinEntity_ID and sbli.lineItems_ID=l.ID and l.ITEM_ID=i.ID and s.ID=? and i.SKU=?";
-            PreparedStatement ps = conn.prepareStatement(stmt);
-            ps.setLong(1, storeID);
-            ps.setString(2, SKU);
-            ResultSet rs = ps.executeQuery();
-            int qty = 0;
-            if (rs.next()) {
-                qty = rs.getInt("sum");
-            }
-
+            int qty = storeDb.getQuantity(storeID, SKU);
             return Response.ok(qty + "", MediaType.APPLICATION_JSON).build();
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -106,16 +96,7 @@ public class StoreentityFacadeREST extends AbstractFacade<Storeentity> {
     @Produces({"application/json"})
     public Response getStoreAddress(@QueryParam("storeName") String storeName) {
         try {
-            Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/islandfurniture-it07?zeroDateTimeBehavior=convertToNull&user=root&password=12345");
-            String stmt = "SELECT * FROM storeentity WHERE NAME = ?";
-            PreparedStatement ps = conn.prepareStatement(stmt);
-            ps.setString(1, storeName);
-            ResultSet rs = ps.executeQuery();
-            String storeAddress = "";
-            if (rs.next()) {
-                storeAddress = rs.getString("ADDRESS");
-            }
-
+            String storeAddress = storeDb.getStoreAddress(storeName);
             return Response.ok(storeAddress, MediaType.APPLICATION_JSON).build();
         } catch (Exception ex) {
             ex.printStackTrace();
